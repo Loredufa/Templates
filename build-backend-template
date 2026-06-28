@@ -1,0 +1,63 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: build-backend
+  annotations:
+    description: "Build template for the backend Java application"
+objects:
+  - apiVersion: image.openshift.io/v1
+    kind: ImageStream
+    metadata:
+      name: ${NAME}
+      labels:
+        app: ${NAME}
+
+  - apiVersion: build.openshift.io/v1
+    kind: BuildConfig
+    metadata:
+      name: ${NAME}
+      labels:
+        app: ${NAME}
+    spec:
+      source:
+        type: Git
+        git:
+          uri: ${SOURCE_URL}
+          ref: ${SOURCE_REF}
+        contextDir: todo-api
+      strategy:
+        type: Source
+        sourceStrategy:
+          from:
+            kind: ImageStreamTag
+            namespace: openshift
+            name: java:latest
+          env:
+            - name: MAVEN_MIRROR_URL
+              value: ${MAVEN_MIRROR_URL}
+      output:
+        to:
+          kind: DockerImage
+          name: ${REGISTRY_URL}/${NAME}:latest
+      triggers:
+        - type: ConfigChange
+
+# EJERCICIO: este template le falta el parametro REGISTRY_URL en la seccion parameters.
+# Mismo error que el de frontend. Agrega el parametro antes de procesar.
+
+parameters:
+  - name: NAME
+    description: "Name for all application artifacts"
+    required: true
+
+  - name: SOURCE_URL
+    description: "Git repository URL containing the application source code"
+    required: true
+
+  - name: SOURCE_REF
+    description: "Git branch, tag or commit"
+    value: main
+
+  - name: MAVEN_MIRROR_URL
+    description: "URL of the Maven mirror repository for dependency resolution"
+    required: true
