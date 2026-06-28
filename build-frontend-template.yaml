@@ -1,0 +1,65 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: build-frontend
+  annotations:
+    description: "Build template for the frontend Node.js application"
+objects:
+  - apiVersion: image.openshift.io/v1
+    kind: ImageStream
+    metadata:
+      name: ${NAME}
+      labels:
+        app: ${NAME}
+
+  - apiVersion: build.openshift.io/v1
+    kind: BuildConfig
+    metadata:
+      name: ${NAME}
+      labels:
+        app: ${NAME}
+    spec:
+      source:
+        type: Git
+        git:
+          uri: ${SOURCE_URL}
+          ref: ${SOURCE_REF}
+        contextDir: nodejs-helloworld
+      strategy:
+        type: Source
+        sourceStrategy:
+          from:
+            kind: ImageStreamTag
+            namespace: openshift
+            name: nodejs:latest
+          env:
+            - name: NPM_MIRROR
+              value: ${NPM_MIRROR_URL}
+      output:
+        to:
+          kind: DockerImage
+          name: ${REGISTRY_URL}/${NAME}:latest
+      triggers:
+        - type: ConfigChange
+
+# EJERCICIO: este template le falta el parametro REGISTRY_URL en la seccion parameters.
+# Si intentas procesarlo sin agregarlo, oc process falla con:
+#   "unknown parameter name REGISTRY_URL"
+# Agrega el parametro faltante antes de continuar.
+
+parameters:
+  - name: NAME
+    description: "Name for all application artifacts"
+    required: true
+
+  - name: SOURCE_URL
+    description: "Git repository URL containing the application source code"
+    required: true
+
+  - name: SOURCE_REF
+    description: "Git branch, tag or commit"
+    value: main
+
+  - name: NPM_MIRROR_URL
+    description: "URL of the NPM mirror registry for dependency resolution"
+    required: true
