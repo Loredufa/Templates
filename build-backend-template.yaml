@@ -31,7 +31,7 @@ objects:
           from:
             kind: ImageStreamTag
             namespace: openshift
-            name: java:latest
+            name: java:11
           env:
             - name: MAVEN_MIRROR_URL
               value: ${MAVEN_MIRROR_URL}
