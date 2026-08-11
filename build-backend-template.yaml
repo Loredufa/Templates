@@ -1,81 +1,63 @@
 apiVersion: template.openshift.io/v1
 kind: Template
 metadata:
-  name: deploy-backend
+  name: build-backend
   annotations:
-    description: "Deploy template for the backend Java application"
+    description: "Build template for the backend Java application"
 objects:
-  - apiVersion: apps/v1
-    kind: Deployment
+  - apiVersion: image.openshift.io/v1
+    kind: ImageStream
     metadata:
       name: ${NAME}
       labels:
         app: ${NAME}
-    spec:
-      replicas: 1
-      selector:
-        matchLabels:
-          app: ${NAME}
-      template:
-        metadata:
-          labels:
-            app: ${NAME}
-        spec:
-          containers:
-            - name: ${NAME}
-              image: ${REGISTRY_URL}/${NAME}:latest
-              ports:
-                - containerPort: 8080
-              env:
-                - name: DB_HOST
-                  value: ${DB_HOST}
-                - name: DB_PORT
-                  value: ${DB_PORT}
 
-  - apiVersion: v1
-    kind: Service
+  - apiVersion: build.openshift.io/v1
+    kind: BuildConfig
     metadata:
       name: ${NAME}
       labels:
         app: ${NAME}
     spec:
-      selector:
-        app: ${NAME}
-      ports:
-        - port: 8080
-          targetPort: 8080
+      source:
+        type: Git
+        git:
+          uri: ${SOURCE_URL}
+          ref: ${SOURCE_REF}
+        contextDir: todo-api
+      strategy:
+        type: Source
+        sourceStrategy:
+          from:
+            kind: ImageStreamTag
+            namespace: openshift
+            name: java:latest
+          env:
+            - name: MAVEN_MIRROR_URL
+              value: ${MAVEN_MIRROR_URL}
+      output:
+        to:
+          kind: DockerImage
+          name: ${REGISTRY_URL}/${NAME}:latest
+      triggers:
+        - type: ConfigChange
 
-  - apiVersion: route.openshift.io/v1
-    kind: Route
-    metadata:
-      name: ${NAME}
-      labels:
-        app: ${NAME}
-    spec:
-      host: ${APP_HOST}
-      to:
-        kind: Service
-        name: ${NAME}
-      port:
-        targetPort: 8080
+# EJERCICIO: este template le falta el parametro REGISTRY_URL en la seccion parameters.
+# Mismo error que el de frontend. Agrega el parametro antes de procesar.
 
 parameters:
   - name: NAME
     description: "Name for all application artifacts"
     required: true
 
-  - name: REGISTRY_URL
-    description: "URL of the internal container registry where the image was pushed"
+  - name: SOURCE_URL
+    description: "Git repository URL containing the application source code"
     required: true
 
-  - name: APP_HOST
-    description: "Hostname for the route (without http://). Example: catalog-be.apps.ocp4.example.com"
+  - name: SOURCE_REF
+    description: "Git branch, tag or commit"
+    value: main
+
+  - name: MAVEN_MIRROR_URL
+    description: "URL of the Maven mirror repository for dependency resolution"
     required: true
-
-  - name: DB_HOST
-    description: "Database hostname"
-    value: "postgresql"
-
-  - name: DB_PORT
-    description: "Database port"
-    value: "5432"
