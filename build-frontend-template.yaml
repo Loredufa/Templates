@@ -62,4 +62,8 @@ parameters:
 
   - name: NPM_MIRROR_URL
     description: "URL of the NPM mirror registry for dependency resolution"
+    required: false
+
+  - name: REGISTRY_URL
+    description: "dir"
     required: true
